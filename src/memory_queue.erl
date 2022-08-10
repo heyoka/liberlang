@@ -24,10 +24,14 @@ new() ->
   new(?Q_MAX_SIZE).
 
 -spec new(non_neg_integer()) -> mem_queue().
+new(Size) when Size =< 0 ->
+  #mem_queue{q = queue:new(), max = 0, current = 0};
 new(Size) ->
   #mem_queue{q = queue:new(), max = Size, current = 0}.
 
 -spec enq(term(), mem_queue()) -> mem_queue().
+enq(_NewItem, Q=#mem_queue{max = 0}) ->
+  Q;
 enq(NewItem, Q=#mem_queue{q = Queue, max = MaxQLen, current = Len}) ->
   {NewQ, NewQLen} =
     case Len >= MaxQLen of
@@ -40,6 +44,8 @@ enq(NewItem, Q=#mem_queue{q = Queue, max = MaxQLen, current = Len}) ->
   Q#mem_queue{q = QueueNew, current = NewQLen + 1}.
 
 -spec deq(mem_queue()) -> {ok, term(), mem_queue()} | {empty, mem_queue()}.
+deq(Q=#mem_queue{max = 0}) ->
+  {empty, Q};
 deq(Q=#mem_queue{q = Queue, current = Len}) ->
   case queue:out(Queue) of
     {{value, Item}, Queue2 }  ->
