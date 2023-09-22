@@ -29,18 +29,18 @@ new(Size) when Size =< 0 ->
 new(Size) ->
   #mem_queue{q = queue:new(), max = Size, current = 0}.
 
--spec enq(term(), mem_queue()) -> mem_queue().
+-spec enq(term()|list(term()), mem_queue()) -> mem_queue().
 enq(_NewItem, Q=#mem_queue{max = 0}) ->
   Q;
+enq(Items, Q) when is_list(Items) ->
+  lists:foldl(fun(Item, Queue) -> enq(Item, Queue) end, Q, Items);
 enq(NewItem, Q=#mem_queue{q = Queue, max = MaxQLen, current = Len}) ->
   {NewQ, NewQLen} =
     case Len >= MaxQLen of
       true -> {queue:drop(Queue), Len - 1};
       false -> {Queue, Len}
     end,
-%%   lager:notice("mem_q: old_len: ~p, new_len: ~p", [Len, NewQLen+1]),
   QueueNew = queue:in(NewItem, NewQ),
-%%   [lager:info("~p",[E]) || E <- queue:to_list(QueueNew) ],
   Q#mem_queue{q = QueueNew, current = NewQLen + 1}.
 
 -spec deq(mem_queue()) -> {ok, term(), mem_queue()} | {empty, mem_queue()}.
@@ -121,6 +121,13 @@ not_member_test() ->
   Q3 = enq(3, Q2),
   ?assertEqual(false, member(44, Q3)).
 
+enq_list_test() ->
+  Q = new(15),
+  Q1 = enq(1, Q),
+  Q2 = enq(2, Q1),
+  Q3 = enq(3, Q2),
+  Q4 = enq([4,5,6,7], Q3),
+  ?assertEqual([1,2,3,4,5,6,7], to_list(Q4)).
 
 -endif.
 
